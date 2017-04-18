@@ -1,0 +1,263 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf8" />
+    <title>iFlytek Web Api</title>
+    <meta name="keywords" content="free mobile website templates, free mobile website template, free iphone template, free android template, free high end touch mobile templates, free high end touch mobile template" />
+    <meta name="description" content="Get free mobile website templates for Iphone , Android and High end touch mobile devices" />
+    <link href="css/style.css" rel="stylesheet" type="text/css" />
+    
+
+    <script   src="https://code.jquery.com/jquery-2.2.3.min.js"   integrity="sha256-a23g1Nt4dtEYOj7bR+vTu7+T8VP13humZFBJNIYoEJo="   crossorigin="anonymous"></script>
+  <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+  <!-- Optional theme -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css" integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r" crossorigin="anonymous">
+  <!-- Latest compiled and minified JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+    <script src="./js/bravey.min.js"></script>
+</head>
+
+<body>
+	<div id="header">
+        <div class="nav">
+        	<ul>
+                <li><a href="#">IAT</a></li>
+            </ul>
+        </div>
+        <div class="logo"><img src="images/logo.png" alt="Company Logo - voicecloud.cn" /></div>
+    </div>
+    <div class="clear"></div>
+    <h2 id='sentence'>speech</h2>
+
+	<div style="position:relative">
+
+		<div id='a'>Click to Record</div>
+        <div id="canvas_wrapper" style="display:none">
+            <div style="display: inline">&spades;</div>
+            <canvas id="volume" height="4"></canvas>
+        </div>
+	</div>
+
+    <div class="input-group input-group-lg">
+    <button onclick="doNlp()">Do NLP</button>
+  </div>
+
+    <div class="panel panel-default"><div class="panel-body" id="result"><i>NLP Analysis</i></div></div>
+
+    <script>
+        onerror=function(a,b,c){
+            alert(a+b+c);
+        }
+    </script>
+	<script type="text/javascript" src='./js/fingerprint2.min.js'></script>
+	<script type="text/javascript" src="./js/iat.all.js"></script>
+	<script type="text/javascript" src="./js/demo.js"></script>
+</body>
+<script type="text/javascript">
+var nlp,nlpDirty=true;
+var traindata={
+  entities:{
+    make:[
+      {text:"bmw",id:"bmw"},
+      {text:"audi",id:"audi"},
+      {text:"mercedes benz",id:"mercedes benz"},
+      {text:"宝马",id:"宝马"}
+      
+      
+    ],
+    model:[
+      {text:"A8",id:"A8"},
+      {text:"X5",id:"X5"},
+      
+    ],
+    color:[
+      {text:"red",id:"red"},
+      {text:"红色",id:"红色"}
+      
+      
+    ]
+
+  },
+  intents:{
+    carorder:[
+      "I want a car!",
+      "Do you have bmw car.",
+      "Black audi A8",
+      "What are audi car do you have",
+      "宝马五系红色"
+
+    ],
+    suggestion:[
+      "what car do you suggest?",
+      
+    ]
+  }
+}
+
+var selected={
+  entity:"",
+  intent:""
+};
+
+function addEntity() {
+  var entity=$("#newEntityName").val();
+  if (entity) {
+    $("#newEntityName").val("");
+    traindata.entities[entity]=[];
+    updateEntityList(entity);
+    updateEntityEditor(entity);
+    nlpDirty=true;
+  }
+}
+
+function addEntityMatch() {
+  if (selected.entity&&traindata.entities[selected.entity]) {
+    traindata.entities[selected.entity].push({text:$("#newMatchText").val(),id:$("#newMatchId").val()});
+    updateEntityEditor();
+    nlpDirty=true;
+  }
+}
+
+function removeEntityMatch(id) {
+  traindata.entities[selected.entity].splice(id,1);
+  updateEntityEditor();
+  nlpDirty=true;
+}
+
+function removeEntity() {
+  delete traindata.entities[selected.entity];
+  updateEntityList();
+  updateEntityEditor("");
+  nlpDirty=true;
+}
+
+function updateEntityList(selected) {
+  var out="",html="";
+  for (var a in traindata.entities)
+    out+='<li><a href="#" onclick="updateEntityEditor(\''+a+'\')">'+a+'</a></li>';
+  if (out) html='<li class="dropdown"><a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">or select an existing one<span class="caret"></span></a><ul class="dropdown-menu">'+out+"</ul></li>";
+  $("#entityList").html(html);
+}
+
+function updateEntityEditor(entity) {
+  if (entity!==undefined) selected.entity=entity;
+  if (selected.entity) {
+    var html='<h3>Entity "'+selected.entity+'"&nbsp;<button type="button" class="btn btn-default" onclick="removeEntity()"><span class="glyphicon glyphicon-trash" aria-hidden="true"></span> Delete</button></h3><table class="table"><tr><th>Text</th><th>Value</th><th>&nbsp;</th></tr>';
+    if (traindata.entities[selected.entity].length)
+     for (var i=0;i<traindata.entities[selected.entity].length;i++)
+        html+='<tr><td>'+traindata.entities[selected.entity][i].text+'</td><td>'+traindata.entities[selected.entity][i].id+'</td><td><button type="button" class="btn btn-default" onclick="removeEntityMatch('+i+')"><span class="glyphicon glyphicon-trash" aria-hidden="true"></span> Delete</button></td></tr>';
+    else
+      html+="<tr><td colspan=3><i>Empty.</i></td></tr>"
+      html+="</table>";
+    html+='<h4>Add a new entity item:</h4>';
+    html+='<div class="input-group"><span class="input-group-addon" id="sizing-addon1">Text:</span><input type="text" class="form-control" placeholder="Write the entity text (i.e pepperoni)" aria-describedby="sizing-addon1" id="newMatchText"></div><br>';
+    html+='<div class="input-group"><span class="input-group-addon" id="sizing-addon1">ID:</span><input type="text" class="form-control" placeholder="Write the entity ID (i.e. ingredient1)" aria-describedby="sizing-addon1" id="newMatchId"></div>';
+    html+='<div class="row"><br><div class="col-lg-1"><button type="button" class="btn btn-default" onclick="addEntityMatch()"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Add</button></div>';
+  } else html="<i>Select or create an entity.</i>";
+  $("#entityEditor").html(html);
+}
+
+function addIntent() {
+  var intent=$("#newIntentName").val();
+  if (intent) {
+    $("#newIntentName").val("");
+    traindata.intents[intent]=[];
+    updateIntentList();
+    updateIntentEditor(intent);
+    nlpDirty=true;
+  }
+}
+
+function addIntentItem() {
+  if (selected.intent&&traindata.intents[selected.intent]) {
+    traindata.intents[selected.intent].push($("#newIntentText").val());
+    updateIntentEditor();
+    nlpDirty=true;
+  }
+}
+
+function removeIntentItem(id) {
+  traindata.intents[selected.intent].splice(id,1);
+  updateIntentEditor();
+  nlpDirty=true;
+}
+
+function removeIntent() {
+  delete traindata.intents[selected.intent];
+  updateIntentList();
+  updateIntentEditor("");
+  nlpDirty=true;
+}
+
+function updateIntentList(selected) {
+
+  var out="",html="";
+  for (var a in traindata.intents)
+    out+='<li><a href="#" onclick="updateIntentEditor(\''+a+'\')">'+a+'</a></li>';
+  if (out) html='<li class="dropdown"><a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">or select an existing one<span class="caret"></span></a><ul class="dropdown-menu">'+out+"</ul></li>";
+  $("#intentList").html(html);
+}
+
+function updateIntentEditor(intent) {
+   if (intent!==undefined) selected.intent=intent;
+  if (selected.intent) {
+    var html='<h3>Intent "'+selected.intent+'"&nbsp;<button type="button" class="btn btn-default" onclick="removeIntent()"><span class="glyphicon glyphicon-trash" aria-hidden="true"></span> Delete</button></h3><table class="table"><tr><th>Sample</th><th>&nbsp;</th></tr>';
+    if (traindata.intents[selected.intent].length)
+     for (var i=0;i<traindata.intents[selected.intent].length;i++)
+        html+='<tr><td>'+traindata.intents[selected.intent][i]+'</td><td><button type="button" class="btn btn-default" onclick="removeIntentItem('+i+')"><span class="glyphicon glyphicon-trash" aria-hidden="true"></span> Delete</button></td></tr>';
+    else
+      html+="<tr><td colspan=3><i>Empty.</i></td></tr>"
+      html+="</table>";
+    html+='<h4>Add a new intent sample:</h4>';
+    html+='<div class="input-group"><span class="input-group-addon" id="sizing-addon1">Sample:</span><input type="text" class="form-control" placeholder="Write a sentence here (i.e. \'I want a pepperoni pizza, please\')" aria-describedby="sizing-addon1" id="newIntentText"></div>';
+    html+='<div class="row"><br><div class="col-lg-1"><button type="button" class="btn btn-default" onclick="addIntentItem()"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Add</button></div>';
+  } else html="<i>Select or create an intent.</i>";
+  $("#intentEditor").html(html);
+}
+
+function doNlp() {
+  var html="<i>Can't understand...</i>",text=$("#sentence").val();
+  if (nlpDirty) {
+    nlp=new Bravey.Nlp.Fuzzy("playground",{stemmer:Bravey.Language.EN.stemmer,filter:Bravey.Filter.BasicFilter});
+
+    nlp.addEntity(new Bravey.Language.EN.NumberEntityRecognizer("number"));
+    nlp.addEntity(new Bravey.Language.EN.TimeEntityRecognizer("time"));
+    nlp.addEntity(new Bravey.Language.EN.DateEntityRecognizer("date"));
+    nlp.addEntity(new Bravey.Language.EN.TimePeriodEntityRecognizer("time_period"));
+
+    for (var a in traindata.entities) {
+      var entity=new Bravey.StringEntityRecognizer(a);
+      for (var i=0;i<traindata.entities[a].length;i++)
+        entity.addMatch(traindata.entities[a][i].id,traindata.entities[a][i].text);
+      nlp.addEntity(entity);
+    }
+
+    for (var a in traindata.intents) {
+      for (var i=0;i<traindata.intents[a].length;i++)
+        nlp.addDocument(traindata.intents[a][i],a,{fromFullSentence:true,expandIntent:true});
+    }
+    nlpDirty=false;
+  }
+
+  var out=nlp.test(text);
+  if (out) {
+    html="<b>Intent:</b> <tt>"+out.intent+"</tt><br>";
+    for (var a in out.entitiesIndex)
+      html+="&nbsp;<b>"+a+":</b> <tt>"+JSON.stringify(out.entitiesIndex[a].value)+"</tt><br>";
+  }
+
+  $("#result").html(html);
+  
+}
+
+function onLoaded() {
+  // pizzas with crusty gluten free for tomorrow morning at 3:20
+  updateEntityList();
+  updateEntityEditor();
+  updateIntentList();
+  updateIntentEditor();
+}
+</script>
+</html>
